@@ -1,5 +1,7 @@
-import { InvoiceStatus } from "@prisma/client";
+import pkg from "@prisma/client";
 import { addDays, isPastDate } from "../utils/date.js";
+
+const { InvoiceStatus } = pkg;
 
 const VAT_RATE = 18;
 
