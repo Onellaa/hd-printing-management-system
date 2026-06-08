@@ -1,6 +1,8 @@
-import { InvoiceStatus } from "@prisma/client";
+import pkg from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { resolveInvoiceStatus } from "./invoiceService.js";
+
+const { InvoiceStatus } = pkg;
 
 export const recalculateInvoicePaymentStatus = async (invoiceId) => {
   if (!invoiceId) return null;

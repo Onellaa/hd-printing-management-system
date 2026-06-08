@@ -1,4 +1,4 @@
-import { InvoiceStatus } from "@prisma/client";
+import pkg from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import {
   calculateInvoiceTotals,
@@ -6,6 +6,8 @@ import {
   resolveInvoiceStatus,
 } from "../services/invoiceService.js";
 import { buildInvoicePdf } from "../services/pdfService.js";
+const { InvoiceStatus } = pkg;
+
 
 const invoiceInclude = {
   customer: true,
