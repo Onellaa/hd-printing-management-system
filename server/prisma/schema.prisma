@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  CARD
+  OTHER
+}
+
+enum ChequeStatus {
+  PENDING
+  DEPOSITED
+  RETURNED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Customer {
+  id               String          @id @default(cuid())
+  companyName      String
+  contactPerson    String?
+  phone            String?
+  email            String?
+  address          String?
+  creditPeriodDays Int             @default(30)
+  creditLimit      Decimal         @db.Decimal(12, 2)
+  status           RecordStatus    @default(ACTIVE)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  purchaseOrders   PurchaseOrder[]
+  invoices         Invoice[]
+  payments         Payment[]
+  cheques          Cheque[]
+}
+
+model Item {
+  id               String                @id @default(cuid())
+  itemCode         String                @unique
+  name             String
+  description      String?
+  unit             String
+  defaultUnitPrice Decimal               @db.Decimal(12, 2)
+  status           RecordStatus          @default(ACTIVE)
+  purchaseOrderItems PurchaseOrderItem[]
+  invoiceItems     InvoiceItem[]
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+}
+
+model PurchaseOrder {
+  id           String              @id @default(cuid())
+  poNumber     String              @unique
+  customerId   String
+  poDate       DateTime
+  deliveryDate DateTime?
+  status       PurchaseOrderStatus @default(DRAFT)
+  notes        String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  customer     Customer            @relation(fields: [customerId], references: [id])
+  items        PurchaseOrderItem[]
+  invoices     Invoice[]
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  itemId          String
+  description     String
+  quantity        Decimal       @db.Decimal(12, 2)
+  unitPrice       Decimal       @db.Decimal(12, 2)
+  amount          Decimal       @db.Decimal(12, 2)
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  item            Item          @relation(fields: [itemId], references: [id])
+}
+
+model Invoice {
+  id                  String         @id @default(cuid())
+  invoiceNumber       String         @unique
+  customerId          String
+  purchaseOrderId     String?
+  invoiceDate         DateTime
+  dueDate             DateTime?
+  creditPeriodDays    Int            @default(0)
+  subtotalWithoutVat  Decimal        @db.Decimal(12, 2)
+  vatRate             Decimal        @db.Decimal(5, 2)
+  vatAmount           Decimal        @db.Decimal(12, 2)
+  totalWithVat        Decimal        @db.Decimal(12, 2)
+  status              InvoiceStatus  @default(DRAFT)
+  notes               String?
+  pdfUrl              String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  customer            Customer       @relation(fields: [customerId], references: [id])
+  purchaseOrder       PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  items               InvoiceItem[]
+  payments            Payment[]
+  cheques             Cheque[]
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  itemId      String?
+  description String
+  quantity    Decimal  @db.Decimal(12, 2)
+  unitPrice   Decimal  @db.Decimal(12, 2)
+  amount      Decimal  @db.Decimal(12, 2)
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  item        Item?    @relation(fields: [itemId], references: [id])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  invoiceId   String
+  customerId  String
+  paymentDate DateTime
+  amount      Decimal       @db.Decimal(12, 2)
+  method      PaymentMethod
+  referenceNo String?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  invoice     Invoice       @relation(fields: [invoiceId], references: [id])
+  customer    Customer      @relation(fields: [customerId], references: [id])
+}
+
+model Cheque {
+  id          String       @id @default(cuid())
+  customerId  String
+  invoiceId   String?
+  chequeNo    String
+  bankName    String
+  chequeDate  DateTime
+  depositDate DateTime?
+  amount      Decimal      @db.Decimal(12, 2)
+  status      ChequeStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  customer    Customer     @relation(fields: [customerId], references: [id])
+  invoice     Invoice?     @relation(fields: [invoiceId], references: [id])
+}
+
+model CompanyProfile {
+  id                 String   @id @default(cuid())
+  companyName        String
+  address            String?
+  phone              String?
+  email              String?
+  taxNumber          String?
+  website            String?
+  invoicePrefix      String   @default("INV")
+  companyTagline     String?
+  bankName           String?
+  bankAccountName    String?
+  bankAccountNumber  String?
+  paymentInstructions String?
+  authorizedByName   String?
+  authorizedByTitle  String?
+  signatureText      String?
+  footerNote         String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
